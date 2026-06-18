@@ -1,0 +1,188 @@
+import type { Community, Clue, Verification, FeedbackRecord } from '@/types'
+
+export const communities: Community[] = [
+  { id: 'c1', name: '翠苑一区', district: '翠苑街道' },
+  { id: 'c2', name: '翠苑二区', district: '翠苑街道' },
+  { id: 'c3', name: '古荡新村', district: '古荡街道' },
+  { id: 'c4', name: '嘉绿苑小区', district: '翠苑街道' },
+  { id: 'c5', name: '文新家园', district: '文新街道' },
+]
+
+const now = new Date()
+const h = (hours: number) => new Date(now.getTime() - hours * 3600000).toISOString()
+
+export const initialClues: Clue[] = [
+  {
+    id: 'clue1',
+    communityId: 'c1',
+    category: 'garbage',
+    originalText: '翠苑一区3幢楼下的垃圾桶已经三天没人来清了，大热天的味道特别大，希望尽快处理！',
+    similarTexts: [
+      '垃圾桶满了好几天了，臭得不行',
+      '3幢门口垃圾堆积如山，什么时候来清理？',
+      '垃圾分类点位溢出，严重影响环境',
+    ],
+    source: 'wechat',
+    similarCount: 12,
+    lastAppearedAt: h(0.5),
+    status: 'pending',
+  },
+  {
+    id: 'clue2',
+    communityId: 'c1',
+    category: 'lighting',
+    originalText: '翠苑一区7幢2单元楼道灯坏了快一周了，晚上回家黑漆漆的，老人小孩很不安全。',
+    similarTexts: [
+      '7幢2单元楼道灯不亮好几天了',
+      '楼道太黑了，能不能赶紧修一下灯',
+    ],
+    source: 'bulletin',
+    similarCount: 6,
+    lastAppearedAt: h(2),
+    status: 'pending',
+  },
+  {
+    id: 'clue3',
+    communityId: 'c2',
+    category: 'noise',
+    originalText: '翠苑二区对面工地半夜还在施工，咚咚咚的根本睡不着觉！都连续三天了！',
+    similarTexts: [
+      '工地夜间施工噪音扰民',
+      '半夜12点还在打桩，这谁受得了',
+      '工地夜间施工严重影响居民休息',
+    ],
+    source: 'video',
+    similarCount: 18,
+    lastAppearedAt: h(1),
+    status: 'pending',
+  },
+  {
+    id: 'clue4',
+    communityId: 'c2',
+    category: 'parking',
+    originalText: '翠苑二区东门消防通道天天有车停着，万一出事消防车根本进不来！',
+    similarTexts: [
+      '消防通道被占，安全隐患很大',
+    ],
+    source: 'wechat',
+    similarCount: 5,
+    lastAppearedAt: h(4),
+    status: 'pending',
+  },
+  {
+    id: 'clue5',
+    communityId: 'c3',
+    category: 'water',
+    originalText: '古荡新村4幢早上用水高峰期水压特别低，热水器都打不着，洗个澡都成问题。',
+    similarTexts: [
+      '水压太低了，热水器都启动不了',
+      '每天早上洗澡像挤牙膏',
+      '4幢和5幢水压严重不足',
+    ],
+    source: 'wechat',
+    similarCount: 9,
+    lastAppearedAt: h(3),
+    status: 'pending',
+  },
+  {
+    id: 'clue6',
+    communityId: 'c3',
+    category: 'garbage',
+    originalText: '古荡新村6幢后面的垃圾分类点又脏又乱，地面全是污水，走路都要绕着走。',
+    similarTexts: [
+      '分类点附近污水横流',
+      '垃圾房旁边太脏了，能不能冲洗一下',
+    ],
+    source: 'bulletin',
+    similarCount: 7,
+    lastAppearedAt: h(5),
+    status: 'pending',
+  },
+  {
+    id: 'clue7',
+    communityId: 'c4',
+    category: 'lighting',
+    originalText: '嘉绿苑小区中心花园的路灯坏了三四盏，晚上散步很不安全，尤其下雨天更黑。',
+    similarTexts: [
+      '花园路灯好几盏不亮',
+      '晚上在小区里走很害怕，太暗了',
+    ],
+    source: 'video',
+    similarCount: 8,
+    lastAppearedAt: h(6),
+    status: 'pending',
+  },
+  {
+    id: 'clue8',
+    communityId: 'c4',
+    category: 'noise',
+    originalText: '嘉绿苑小区1幢楼下广场舞每天早上6点就开始了，音响开得特别大，周末也没法休息。',
+    similarTexts: [
+      '广场舞太早太吵了',
+      '6点就放音乐，根本没法睡觉',
+    ],
+    source: 'wechat',
+    similarCount: 11,
+    lastAppearedAt: h(1.5),
+    status: 'pending',
+  },
+  {
+    id: 'clue9',
+    communityId: 'c5',
+    category: 'other',
+    originalText: '文新家园小区门口的快递柜太少，经常满柜取不了件，快递都堆在地上淋雨。',
+    similarTexts: [
+      '快递柜不够用，快递全堆地上',
+      '下雨天快递都淋湿了',
+    ],
+    source: 'bulletin',
+    similarCount: 4,
+    lastAppearedAt: h(8),
+    status: 'pending',
+  },
+  {
+    id: 'clue10',
+    communityId: 'c5',
+    category: 'parking',
+    originalText: '文新家园地下车库入口处经常有电动车乱停，汽车进出都费劲，刮了好几次了。',
+    similarTexts: [
+      '车库口电动车乱停',
+    ],
+    source: 'video',
+    similarCount: 3,
+    lastAppearedAt: h(10),
+    status: 'pending',
+  },
+  {
+    id: 'clue11',
+    communityId: 'c1',
+    category: 'noise',
+    originalText: '翠苑一区临街的住户反映夜间渣土车经过，震动和噪音严重影响睡眠质量。',
+    similarTexts: [
+      '渣土车半夜轰隆隆的，窗户都在抖',
+      '临街噪音太大了，希望设限行',
+    ],
+    source: 'wechat',
+    similarCount: 14,
+    lastAppearedAt: h(0.2),
+    status: 'pending',
+  },
+  {
+    id: 'clue12',
+    communityId: 'c3',
+    category: 'other',
+    originalText: '古荡新村2幢电梯经常故障停运，老人爬楼梯很吃力，已经报修多次没人来。',
+    similarTexts: [
+      '电梯又坏了，这周第三次了',
+      '电梯报修了没人处理',
+      '老人根本爬不动6楼',
+    ],
+    source: 'bulletin',
+    similarCount: 15,
+    lastAppearedAt: h(2.5),
+    status: 'pending',
+  },
+]
+
+export const initialVerifications: Verification[] = []
+export const initialFeedbacks: FeedbackRecord[] = []
