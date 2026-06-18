@@ -25,7 +25,7 @@ import { useStore } from '@/store/useStore'
 import { communities } from '@/data/mockData'
 import CategoryIcon from '@/components/CategoryIcon'
 
-const DEPTS = ['物业中心', '环卫中心', '交警大队', '城管执法', '供水公司', '供电所']
+const DEPTS = ['物业中心', '环卫中心', '交警大队', '城管执法', '供水公司', '供电所', '环保所', '派出所']
 
 const taskIcons: Record<TaskItem['type'], React.ElementType> = {
   verify: ClipboardCheck,
@@ -184,12 +184,18 @@ export default function Tasks() {
 
   const [showFilters, setShowFilters] = useState(false)
   const [selectedType, setSelectedType] = useState<TaskType | ''>('')
+  const [selectedDistrict, setSelectedDistrict] = useState<string>('')
   const [selectedCommunity, setSelectedCommunity] = useState<string>('')
   const [selectedDept, setSelectedDept] = useState<string>('')
   const [selectedUrgency, setSelectedUrgency] = useState<TaskGroup | ''>('')
   const [onlyToday, setOnlyToday] = useState(false)
 
   const allTasks = useMemo(() => getTasks(), [getTasks, location.key])
+
+  const districts = useMemo(() => {
+    const set = new Set(communities.map(c => c.district))
+    return Array.from(set)
+  }, [])
 
   const filteredTasks = useMemo(() => {
     const result = { ...allTasks }
@@ -201,7 +207,12 @@ export default function Tasks() {
     }
 
     const filterFn = (task: TaskItem) => {
+      if (onlyToday && task.type !== 'transfer_followup') return false
       if (selectedType && task.type !== selectedType) return false
+      if (selectedDistrict) {
+        const community = communities.find(c => c.id === task.clue.communityId)
+        if (community?.district !== selectedDistrict) return false
+      }
       if (selectedCommunity && task.clue.communityId !== selectedCommunity) return false
       if (selectedUrgency && task.group !== selectedUrgency) return false
       if (selectedDept && task.type === 'transfer_followup') {
@@ -217,7 +228,7 @@ export default function Tasks() {
     result.future = result.future.filter(filterFn)
 
     return result
-  }, [allTasks, selectedType, selectedCommunity, selectedDept, selectedUrgency, onlyToday, getFeedbackByClueId])
+  }, [allTasks, selectedType, selectedDistrict, selectedCommunity, selectedDept, selectedUrgency, onlyToday, getFeedbackByClueId])
 
   const totalCount = filteredTasks.overdue.length + filteredTasks.today.length + filteredTasks.tomorrow.length + filteredTasks.future.length
   const overdueCount = filteredTasks.overdue.length
@@ -243,7 +254,7 @@ export default function Tasks() {
   const weekdays = ['日', '一', '二', '三', '四', '五', '六']
   const weekday = weekdays[today.getDay()]
 
-  const hasActiveFilters = selectedType || selectedCommunity || selectedDept || selectedUrgency || onlyToday
+  const hasActiveFilters = selectedType || selectedDistrict || selectedCommunity || selectedDept || selectedUrgency || onlyToday
 
   return (
     <div className="min-h-screen bg-slate-50 pb-24">
@@ -322,6 +333,35 @@ export default function Tasks() {
                   }`}
                 >
                   {TASK_TYPE_LABELS[type]}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-slate-600 mb-1.5 block">所属网格</label>
+            <div className="flex gap-1.5 flex-wrap">
+              <button
+                onClick={() => setSelectedDistrict('')}
+                className={`px-3 py-1.5 rounded-full text-xs transition-colors ${
+                  !selectedDistrict
+                    ? 'bg-orange-500 text-white'
+                    : 'bg-slate-100 text-slate-600'
+                }`}
+              >
+                全部
+              </button>
+              {districts.map((d) => (
+                <button
+                  key={d}
+                  onClick={() => setSelectedDistrict(d)}
+                  className={`px-3 py-1.5 rounded-full text-xs transition-colors ${
+                    selectedDistrict === d
+                      ? 'bg-orange-500 text-white'
+                      : 'bg-slate-100 text-slate-600'
+                  }`}
+                >
+                  {d}
                 </button>
               ))}
             </div>

@@ -272,9 +272,9 @@ export default function Clues() {
             selectClue(null)
             const verification = getVerificationByClueId(id)
             const feedback = getFeedbackByClueId(id)
-            if (verification && !feedback) {
-              navigate('/feedback', { state: { clueId: id } })
-            } else if (feedback) {
+            if (feedback) {
+              navigate('/feedback', { state: { clueId: id, viewVerification: true } })
+            } else if (verification && !feedback) {
               navigate('/feedback', { state: { clueId: id } })
             } else {
               startVerify(id)

@@ -15,7 +15,7 @@ import type {
   UrgeMethod,
 } from '@/types'
 import { communities, initialClues, initialVerifications, initialFeedbacks } from '@/data/mockData'
-import { saveToLocalStorage, loadFromLocalStorage, blobToBase64 } from '@/utils/storage'
+import { saveToLocalStorage, loadFromLocalStorage, blobToBase64, base64ToBlob } from '@/utils/storage'
 
 const DEBOUNCE_MS = 500
 
@@ -411,8 +411,18 @@ export const useStore = create<AppState>((set, get) => ({
   getClueById: (id) => get().clues.find((c) => c.id === id),
   getVerificationById: (id) => get().verifications.find((v) => v.id === id),
 
-  getVerificationByClueId: (clueId) =>
-    get().verifications.find((v) => v.clueId === clueId),
+  getVerificationByClueId: (clueId) => {
+    const v = get().verifications.find((v) => v.clueId === clueId)
+    if (v && v.voiceBase64 && !v.voiceBlob) {
+      try {
+        const blob = base64ToBlob(v.voiceBase64)
+        return { ...v, voiceBlob: blob }
+      } catch {
+        return v
+      }
+    }
+    return v
+  },
 
   getFeedbackByClueId: (clueId) =>
     get().feedbacks.find((f) => f.clueId === clueId),

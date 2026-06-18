@@ -21,7 +21,7 @@ import { URGE_METHOD_LABELS, URGE_METHOD_ICONS, CATEGORY_LABELS } from '@/types'
 import type { UrgeMethod, TransferProgress, Clue } from '@/types'
 import CategoryIcon from '@/components/CategoryIcon'
 
-const DEPTS = ['物业中心', '环卫中心', '交警大队', '城管执法', '供水公司', '供电所']
+const DEPTS = ['物业中心', '环卫中心', '交警大队', '城管执法', '供水公司', '供电所', '环保所', '派出所']
 
 const TRANSFER_DEPT_COLORS: Record<string, { bg: string; text: string }> = {
   物业中心: { bg: 'bg-blue-100', text: 'text-blue-700' },
@@ -30,6 +30,8 @@ const TRANSFER_DEPT_COLORS: Record<string, { bg: string; text: string }> = {
   城管执法: { bg: 'bg-orange-100', text: 'text-orange-700' },
   供水公司: { bg: 'bg-cyan-100', text: 'text-cyan-700' },
   供电所: { bg: 'bg-amber-100', text: 'text-amber-700' },
+  环保所: { bg: 'bg-emerald-100', text: 'text-emerald-700' },
+  派出所: { bg: 'bg-sky-100', text: 'text-sky-700' },
 }
 
 function TransferCard({
@@ -306,7 +308,7 @@ function TransferDetail({
   const transferDept = feedback?.transferDept || ''
 
   const handleViewVerification = () => {
-    navigate('/feedback', { state: { clueId: progress.clueId } })
+    navigate('/feedback', { state: { clueId: progress.clueId, viewVerification: true } })
   }
 
   return (

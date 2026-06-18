@@ -27,12 +27,12 @@ import CategoryIcon from '@/components/CategoryIcon'
 import VerificationDetail from '@/components/VerificationDetail'
 
 const TRANSFER_DEPTS = [
+  '物业中心',
   '环卫中心',
-  '物业服务中心',
-  '城管执法中队',
-  '住建站',
+  '城管执法',
+  '交警大队',
+  '供水公司',
   '供电所',
-  '自来水公司',
   '环保所',
   '派出所',
 ]
@@ -42,9 +42,10 @@ type ViewMode = 'list' | 'feedback' | 'followup'
 
 export default function Feedback() {
   const navigate = useNavigate()
-  const locationState = useLocation().state as { clueId?: string; showFollowUp?: boolean } | null
+  const locationState = useLocation().state as { clueId?: string; showFollowUp?: boolean; viewVerification?: boolean } | null
   const clueIdFromNav = locationState?.clueId
   const showFollowUpFromNav = locationState?.showFollowUp
+  const viewVerificationFromNav = locationState?.viewVerification
 
   const getClueById = useStore((s) => s.getClueById)
   const getCommunityById = useStore((s) => s.getCommunityById)
@@ -81,7 +82,9 @@ export default function Feedback() {
     if (clueIdFromNav) {
       const feedback = getFeedbackByClueId(clueIdFromNav)
       const verification = getVerificationByClueId(clueIdFromNav)
-      if (feedback && showFollowUpFromNav) {
+      if (viewVerificationFromNav && verification) {
+        setViewingClueId(clueIdFromNav)
+      } else if (feedback && showFollowUpFromNav) {
         setViewMode('followup')
         setActiveClueId(clueIdFromNav)
         resetFollowUpForm()
@@ -89,9 +92,11 @@ export default function Feedback() {
         setViewMode('feedback')
         setActiveClueId(clueIdFromNav)
         resetFeedbackForm()
+      } else if (feedback) {
+        setViewingClueId(clueIdFromNav)
       }
     }
-  }, [clueIdFromNav, showFollowUpFromNav, getFeedbackByClueId, getVerificationByClueId])
+  }, [clueIdFromNav, showFollowUpFromNav, viewVerificationFromNav, getFeedbackByClueId, getVerificationByClueId])
 
   const allRecords = useMemo(() => {
     return clues.map((clue) => {
