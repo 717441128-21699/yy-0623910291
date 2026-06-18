@@ -14,6 +14,8 @@ const alertStyles: Record<string, string> = {
   '重点关注': 'bg-red-500',
   '投诉突增': 'bg-orange-500',
   '同类聚集': 'bg-amber-500',
+  '持续多日': 'bg-rose-500',
+  '转办后仍投诉': 'bg-purple-500',
 }
 
 function timeAgo(iso: string): string {

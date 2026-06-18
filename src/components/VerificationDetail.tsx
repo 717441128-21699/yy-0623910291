@@ -1,6 +1,6 @@
-import { X, Camera, Mic, MapPin, Clock, ClipboardCopy, FileText, Send } from 'lucide-react'
-import type { Verification, FeedbackRecord, Clue } from '@/types'
-import { VERIFY_STATUS_LABELS, CATEGORY_LABELS } from '@/types'
+import { X, Camera, Mic, MapPin, Clock, ClipboardCopy, FileText, Send, Smile, Meh, Frown, RefreshCw, MessageSquare } from 'lucide-react'
+import type { Verification, FeedbackRecord, Clue, FollowUpRecord } from '@/types'
+import { VERIFY_STATUS_LABELS, CATEGORY_LABELS, SATISFACTION_LABELS } from '@/types'
 import { useStore } from '@/store/useStore'
 import CategoryIcon from '@/components/CategoryIcon'
 import VoicePlayer from '@/components/VoicePlayer'
@@ -165,6 +165,76 @@ export default function VerificationDetail({ verification, feedback, onClose, on
                   </button>
                 </div>
               </div>
+
+              {feedback.followUps && feedback.followUps.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
+                    <MessageSquare size={14} className="text-purple-600" />
+                    回访记录
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-600 font-normal">
+                      {feedback.followUps.length}条
+                    </span>
+                  </h4>
+                  <div className="space-y-3">
+                    {feedback.followUps.map((fu: FollowUpRecord, idx: number) => {
+                      const SatIcon = fu.satisfaction === 'satisfied' ? Smile :
+                        fu.satisfaction === 'neutral' ? Meh :
+                        fu.satisfaction === 'dissatisfied' ? Frown : Meh
+                      const satColor = fu.satisfaction === 'satisfied' ? 'text-green-500' :
+                        fu.satisfaction === 'neutral' ? 'text-amber-500' :
+                        fu.satisfaction === 'dissatisfied' ? 'text-red-500' : 'text-slate-400'
+                      return (
+                        <div key={fu.id} className="bg-purple-50 border border-purple-100 rounded-xl p-3">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="text-[10px] bg-white px-1.5 py-0.5 rounded-full text-slate-500">
+                              第{idx + 1}次回访
+                            </span>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-full flex items-center gap-0.5 ${satColor.replace('text-', 'bg-').replace('500', '100')} ${satColor}`}>
+                              <SatIcon size={10} />
+                              {fu.satisfaction ? SATISFACTION_LABELS[fu.satisfaction] : '未记录'}
+                            </span>
+                            {fu.isRecurrence && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-100 text-red-600 flex items-center gap-0.5">
+                                <RefreshCw size={8} />
+                                已复发
+                              </span>
+                            )}
+                            <span className="text-[10px] text-slate-400 ml-auto">
+                              {new Date(fu.createdAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                          {fu.additionalNotes && (
+                            <p className="text-xs text-slate-600 mb-2">{fu.additionalNotes}</p>
+                          )}
+                          {fu.additionalPhotos.length > 0 && (
+                            <div className="flex gap-1.5">
+                              {fu.additionalPhotos.map((p: string, i: number) => (
+                                <img key={i} src={p} alt="" className="w-14 h-14 rounded-lg object-cover" />
+                              ))}
+                            </div>
+                          )}
+                          {fu.generatedFollowUpNotice && (
+                            <div className="mt-2 bg-white rounded-lg p-2 border border-purple-100">
+                              <p className="text-[10px] text-purple-700 leading-relaxed whitespace-pre-line">
+                                {fu.generatedFollowUpNotice}
+                              </p>
+                              <button
+                                onClick={() => {
+                                  navigator.clipboard.writeText(fu.generatedFollowUpNotice).catch(() => {})
+                                }}
+                                className="mt-1.5 flex items-center gap-1 text-[10px] text-purple-600 font-medium"
+                              >
+                                <ClipboardCopy size={10} />
+                                复制回访回复
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

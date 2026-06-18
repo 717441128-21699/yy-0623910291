@@ -1,13 +1,13 @@
 import { Trash2, Lightbulb, Volume2, Car, Droplets, HelpCircle } from 'lucide-react'
 import type { ClueCategory } from '@/types'
 
-const iconMap: Record<ClueCategory, React.ReactNode> = {
-  garbage: <Trash2 size={18} />,
-  lighting: <Lightbulb size={18} />,
-  noise: <Volume2 size={18} />,
-  parking: <Car size={18} />,
-  water: <Droplets size={18} />,
-  other: <HelpCircle size={18} />,
+const iconMap: Record<ClueCategory, { sm: React.ReactNode; md: React.ReactNode; xs: React.ReactNode }> = {
+  garbage: { xs: <Trash2 size={12} />, sm: <Trash2 size={14} />, md: <Trash2 size={18} /> },
+  lighting: { xs: <Lightbulb size={12} />, sm: <Lightbulb size={14} />, md: <Lightbulb size={18} /> },
+  noise: { xs: <Volume2 size={12} />, sm: <Volume2 size={14} />, md: <Volume2 size={18} /> },
+  parking: { xs: <Car size={12} />, sm: <Car size={14} />, md: <Car size={18} /> },
+  water: { xs: <Droplets size={12} />, sm: <Droplets size={14} />, md: <Droplets size={18} /> },
+  other: { xs: <HelpCircle size={12} />, sm: <HelpCircle size={14} />, md: <HelpCircle size={18} /> },
 }
 
 const bgMap: Record<ClueCategory, string> = {
@@ -21,14 +21,14 @@ const bgMap: Record<ClueCategory, string> = {
 
 interface Props {
   category: ClueCategory
-  size?: 'sm' | 'md'
+  size?: 'xs' | 'sm' | 'md'
 }
 
 export default function CategoryIcon({ category, size = 'md' }: Props) {
-  const containerClass = size === 'sm' ? 'w-8 h-8' : 'w-10 h-10'
+  const containerClass = size === 'xs' ? 'w-6 h-6' : size === 'sm' ? 'w-8 h-8' : 'w-10 h-10'
   return (
     <div className={`${containerClass} rounded-xl flex items-center justify-center ${bgMap[category]}`}>
-      {iconMap[category]}
+      {iconMap[category][size]}
     </div>
   )
 }

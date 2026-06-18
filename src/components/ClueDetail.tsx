@@ -1,4 +1,4 @@
-import { X, Users, ChevronRight, MessageSquare } from 'lucide-react'
+import { X, Users, ChevronRight, MessageSquare, Calendar } from 'lucide-react'
 import type { Clue, ClueSource } from '@/types'
 import { CATEGORY_LABELS, SOURCE_LABELS } from '@/types'
 import { useStore } from '@/store/useStore'
@@ -19,6 +19,11 @@ function timeAgo(iso: string): string {
   return `${Math.floor(hours / 24)}天前`
 }
 
+function formatDate(iso: string): string {
+  const date = new Date(iso)
+  return `${date.getMonth() + 1}月${date.getDate()}日`
+}
+
 interface Props {
   clue: Clue
   onClose: () => void
@@ -27,7 +32,53 @@ interface Props {
 
 export default function ClueDetail({ clue, onClose, onVerify }: Props) {
   const getCommunityById = useStore((s) => s.getCommunityById)
+  const getVerificationByClueId = useStore((s) => s.getVerificationByClueId)
+  const getFeedbackByClueId = useStore((s) => s.getFeedbackByClueId)
   const community = getCommunityById(clue.communityId)
+  const verification = getVerificationByClueId(clue.id)
+  const feedback = getFeedbackByClueId(clue.id)
+
+  const daysSince = Math.floor((Date.now() - new Date(clue.firstAppearedAt).getTime()) / (1000 * 60 * 60 * 24))
+
+  const getActionButton = () => {
+    if (clue.status === 'pending') {
+      return {
+        text: '前往核验',
+        action: () => onVerify(clue.id),
+        variant: 'teal',
+      }
+    }
+    if (clue.status === 'verifying') {
+      return {
+        text: '继续核验',
+        action: () => onVerify(clue.id),
+        variant: 'amber',
+      }
+    }
+    if (clue.status === 'verified' && !feedback) {
+      return {
+        text: '填写反馈',
+        action: () => onVerify(clue.id),
+        variant: 'teal',
+      }
+    }
+    if (clue.status === 'feedback_done') {
+      return {
+        text: '查看记录',
+        action: () => onVerify(clue.id),
+        variant: 'slate',
+      }
+    }
+    return null
+  }
+
+  const actionBtn = getActionButton()
+
+  const variantStyles: Record<string, { bg: string; active: string }> = {
+    teal: { bg: 'bg-teal-600', active: 'active:bg-teal-700' },
+    amber: { bg: 'bg-amber-500', active: 'active:bg-amber-600' },
+    slate: { bg: 'bg-slate-600', active: 'active:bg-slate-700' },
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end">
@@ -65,7 +116,15 @@ export default function ClueDetail({ clue, onClose, onVerify }: Props) {
                 <span className="font-medium text-orange-500">{clue.similarCount}</span>
                 人反映
               </span>
-              <span>最近：{timeAgo(clue.lastAppearedAt)}</span>
+              <span className="flex items-center gap-1">
+                <Calendar size={12} />
+                首次：{formatDate(clue.firstAppearedAt)}
+              </span>
+              {daysSince > 1 && (
+                <span className="text-amber-600 font-medium">
+                  已持续{Math.floor(daysSince)}天
+                </span>
+              )}
             </div>
           </div>
 
@@ -87,27 +146,52 @@ export default function ClueDetail({ clue, onClose, onVerify }: Props) {
               </div>
             </div>
           )}
+
+          {verification && (
+            <div className="mb-4">
+              <h4 className="text-sm font-medium text-slate-600 mb-2">核验状态</h4>
+              <div className="bg-teal-50 rounded-xl p-3 border border-teal-100">
+                <div className="text-xs text-teal-600">
+                  {verification.verifiedAt ? `核验时间：${new Date(verification.verifiedAt).toLocaleString('zh-CN')}` : '核验中'}
+                </div>
+                {verification.verifyStatus && (
+                  <div className="text-xs text-teal-800 mt-1">
+                    核验结果：{verification.verifyStatus === 'confirmed' ? '属实' : verification.verifyStatus === 'partial' ? '部分属实' : '待进一步了解'}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {feedback && (
+            <div className="mb-4">
+              <h4 className="text-sm font-medium text-slate-600 mb-2">反馈记录</h4>
+              <div className="bg-slate-50 rounded-xl p-3 border border-slate-200">
+                <div className="text-xs text-slate-600 mb-1">
+                  {feedback.transferDept ? `转办至：${feedback.transferDept}` : '已处置完成'}
+                </div>
+                {feedback.result && (
+                  <div className="text-xs text-slate-700">处置结果：{feedback.result}</div>
+                )}
+                {feedback.followUps.length > 0 && (
+                  <div className="text-xs text-teal-600 mt-2 font-medium">
+                    已有 {feedback.followUps.length} 次回访记录
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
-        {clue.status === 'pending' && (
+        {actionBtn && (
           <div className="px-5 pb-6 pt-3 border-t border-slate-100">
             <button
-              onClick={() => onVerify(clue.id)}
-              className="w-full bg-teal-600 text-white rounded-xl py-3.5 text-sm font-medium flex items-center justify-center gap-2 active:bg-teal-700 transition-colors"
+              onClick={actionBtn.action}
+              className={`w-full text-white rounded-xl py-3.5 text-sm font-medium flex items-center justify-center gap-2 transition-colors ${variantStyles[actionBtn.variant].bg} ${variantStyles[actionBtn.variant].active}`}
             >
-              前往核验
+              {actionBtn.text}
               <ChevronRight size={16} />
             </button>
-          </div>
-        )}
-
-        {clue.status !== 'pending' && (
-          <div className="px-5 pb-6 pt-3 border-t border-slate-100">
-            <div className="text-center text-sm text-slate-400">
-              {clue.status === 'verifying' && '该线索正在核验中'}
-              {clue.status === 'verified' && '该线索已核验，请填写反馈'}
-              {clue.status === 'feedback_done' && '该线索已完成闭环'}
-            </div>
           </div>
         )}
       </div>

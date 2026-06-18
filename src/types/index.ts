@@ -17,8 +17,11 @@ export interface Clue {
   similarTexts: string[]
   source: ClueSource
   similarCount: number
+  firstAppearedAt: string
   lastAppearedAt: string
   status: ClueStatus
+  expectedDeadline: string
+  isTransferFollowUp?: boolean
 }
 
 export interface Verification {
@@ -27,13 +30,14 @@ export interface Verification {
   photos: string[]
   voiceNoteUrl: string
   voiceBlob: Blob | null
+  voiceBase64: string | null
   voiceDuration: number
   location: string
   verifyStatus: VerifyStatus | null
   verifiedAt: string | null
 }
 
-export type AlertType = 'spike' | 'cluster'
+export type AlertType = 'spike' | 'cluster' | 'persistent' | 'transfer_spike'
 
 export interface ClueWithAlert extends Clue {
   alertTypes?: AlertType[]
@@ -48,6 +52,33 @@ export interface FeedbackRecord {
   transferReason: string
   generatedNotice: string
   createdAt: string | null
+  followUps: FollowUpRecord[]
+}
+
+export interface FollowUpRecord {
+  id: string
+  feedbackId: string
+  satisfaction: 'satisfied' | 'neutral' | 'dissatisfied' | null
+  isRecurrence: boolean
+  additionalPhotos: string[]
+  additionalNotes: string
+  generatedFollowUpNotice: string
+  createdAt: string
+}
+
+export type TaskGroup = 'today' | 'tomorrow' | 'overdue' | 'future'
+export type TaskType = 'verify' | 'feedback' | 'transfer_followup'
+
+export interface TaskItem {
+  id: string
+  type: TaskType
+  group: TaskGroup
+  clue: Clue
+  verification?: Verification
+  feedback?: FeedbackRecord
+  communityName: string
+  daysRemaining: number
+  missingActions: string[]
 }
 
 export const CATEGORY_LABELS: Record<ClueCategory, string> = {
@@ -69,4 +100,23 @@ export const VERIFY_STATUS_LABELS: Record<VerifyStatus, string> = {
   confirmed: '属实',
   partial: '部分属实',
   pending_further: '待进一步了解',
+}
+
+export const SATISFACTION_LABELS: Record<Exclude<FollowUpRecord['satisfaction'], null>, string> = {
+  satisfied: '满意',
+  neutral: '一般',
+  dissatisfied: '不满意',
+}
+
+export const TASK_TYPE_LABELS: Record<TaskType, string> = {
+  verify: '待核验',
+  feedback: '待反馈',
+  transfer_followup: '待回访',
+}
+
+export const TASK_GROUP_LABELS: Record<TaskGroup, { label: string; color: string; bg: string }> = {
+  overdue: { label: '已逾期', color: 'text-red-600', bg: 'bg-red-50' },
+  today: { label: '今天', color: 'text-orange-600', bg: 'bg-orange-50' },
+  tomorrow: { label: '明天', color: 'text-amber-600', bg: 'bg-amber-50' },
+  future: { label: '稍后', color: 'text-slate-500', bg: 'bg-slate-50' },
 }

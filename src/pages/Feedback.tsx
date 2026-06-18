@@ -1,8 +1,26 @@
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { ClipboardCopy, ChevronRight, FileText, Send, Filter, Eye, Edit3 } from 'lucide-react'
-import type { ClueCategory } from '@/types'
-import { CATEGORY_LABELS, VERIFY_STATUS_LABELS } from '@/types'
+import {
+  ClipboardCopy,
+  ChevronRight,
+  FileText,
+  Send,
+  Filter,
+  Eye,
+  Edit3,
+  Smile,
+  Meh,
+  Frown,
+  RefreshCw,
+  Camera,
+  Image as ImageIcon,
+  X,
+  PhoneCall,
+  Plus,
+  MessageSquare,
+} from 'lucide-react'
+import type { ClueCategory, FollowUpRecord } from '@/types'
+import { CATEGORY_LABELS, VERIFY_STATUS_LABELS, SATISFACTION_LABELS } from '@/types'
 import { useStore } from '@/store/useStore'
 import { communities } from '@/data/mockData'
 import CategoryIcon from '@/components/CategoryIcon'
@@ -20,11 +38,13 @@ const TRANSFER_DEPTS = [
 ]
 
 type StatusFilter = 'all' | 'pending_verify' | 'verified' | 'pending_feedback' | 'done'
+type ViewMode = 'list' | 'feedback' | 'followup'
 
 export default function Feedback() {
   const navigate = useNavigate()
-  const locationState = useLocation().state as { clueId?: string } | null
+  const locationState = useLocation().state as { clueId?: string; showFollowUp?: boolean } | null
   const clueIdFromNav = locationState?.clueId
+  const showFollowUpFromNav = locationState?.showFollowUp
 
   const getClueById = useStore((s) => s.getClueById)
   const getCommunityById = useStore((s) => s.getCommunityById)
@@ -32,6 +52,8 @@ export default function Feedback() {
   const getFeedbackByClueId = useStore((s) => s.getFeedbackByClueId)
   const submitFeedback = useStore((s) => s.submitFeedback)
   const generateNotice = useStore((s) => s.generateNotice)
+  const generateFollowUpNotice = useStore((s) => s.generateFollowUpNotice)
+  const addFollowUp = useStore((s) => s.addFollowUp)
   const clues = useStore((s) => s.clues)
 
   const [communityFilter, setCommunityFilter] = useState<string>('all')
@@ -39,12 +61,37 @@ export default function Feedback() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [showFilters, setShowFilters] = useState(false)
 
+  const [viewMode, setViewMode] = useState<ViewMode>('list')
   const [activeClueId, setActiveClueId] = useState<string | null>(clueIdFromNav || null)
+
   const [result, setResult] = useState('')
   const [transferDept, setTransferDept] = useState('')
   const [transferReason, setTransferReason] = useState('')
   const [showDeptPicker, setShowDeptPicker] = useState(false)
+
+  const [satisfaction, setSatisfaction] = useState<FollowUpRecord['satisfaction']>(null)
+  const [isRecurrence, setIsRecurrence] = useState(false)
+  const [additionalPhotos, setAdditionalPhotos] = useState<string[]>([])
+  const [additionalNotes, setAdditionalNotes] = useState('')
+
   const [viewingClueId, setViewingClueId] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (clueIdFromNav) {
+      const feedback = getFeedbackByClueId(clueIdFromNav)
+      const verification = getVerificationByClueId(clueIdFromNav)
+      if (feedback && showFollowUpFromNav) {
+        setViewMode('followup')
+        setActiveClueId(clueIdFromNav)
+        resetFollowUpForm()
+      } else if (verification && !feedback) {
+        setViewMode('feedback')
+        setActiveClueId(clueIdFromNav)
+        resetFeedbackForm()
+      }
+    }
+  }, [clueIdFromNav, showFollowUpFromNav, getFeedbackByClueId, getVerificationByClueId])
 
   const allRecords = useMemo(() => {
     return clues.map((clue) => {
@@ -77,6 +124,7 @@ export default function Feedback() {
 
   const activeClue = activeClueId ? getClueById(activeClueId) : null
   const activeVerification = activeClueId ? getVerificationByClueId(activeClueId) : null
+  const activeFeedback = activeClueId ? getFeedbackByClueId(activeClueId) : null
   const activeCommunity = activeClue ? getCommunityById(activeClue.communityId) : undefined
 
   const viewingClue = viewingClueId ? getClueById(viewingClueId) : null
@@ -96,7 +144,36 @@ export default function Feedback() {
     })
   }, [activeClue, activeVerification, activeCommunity, result, transferDept, transferReason, generateNotice])
 
+  const previewFollowUpNotice = useMemo(() => {
+    if (!activeClue || !activeFeedback) return ''
+    return generateFollowUpNotice({
+      originalText: activeClue.originalText,
+      category: activeClue.category,
+      communityName: activeCommunity?.name || '',
+      satisfaction,
+      isRecurrence,
+      additionalNotes,
+      prevNotice: activeFeedback.generatedNotice,
+    })
+  }, [activeClue, activeFeedback, activeCommunity, satisfaction, isRecurrence, additionalNotes, generateFollowUpNotice])
+
   const canSubmit = (result.trim() || (transferDept && transferReason.trim())) && activeVerification
+
+  const canSubmitFollowUp = satisfaction !== null
+
+  const resetFeedbackForm = () => {
+    setResult('')
+    setTransferDept('')
+    setTransferReason('')
+    setShowDeptPicker(false)
+  }
+
+  const resetFollowUpForm = () => {
+    setSatisfaction(null)
+    setIsRecurrence(false)
+    setAdditionalPhotos([])
+    setAdditionalNotes('')
+  }
 
   const handleSubmit = useCallback(() => {
     if (!activeVerification || !activeClueId || !canSubmit) return
@@ -107,26 +184,74 @@ export default function Feedback() {
       transferDept,
       transferReason,
     })
+    setViewMode('list')
     setActiveClueId(null)
-    setResult('')
-    setTransferDept('')
-    setTransferReason('')
+    resetFeedbackForm()
   }, [activeVerification, activeClueId, result, transferDept, transferReason, submitFeedback, canSubmit])
+
+  const handleSubmitFollowUp = useCallback(() => {
+    if (!activeFeedback || !activeClueId || !canSubmitFollowUp) return
+    addFollowUp({
+      feedbackId: activeFeedback.id,
+      clueId: activeClueId,
+      satisfaction,
+      isRecurrence,
+      additionalPhotos,
+      additionalNotes,
+    })
+    setViewMode('list')
+    setActiveClueId(null)
+    resetFollowUpForm()
+  }, [activeFeedback, activeClueId, satisfaction, isRecurrence, additionalPhotos, additionalNotes, addFollowUp, canSubmitFollowUp])
 
   const handleSelectForFeedback = useCallback((clueId: string) => {
     const verification = getVerificationByClueId(clueId)
     if (!verification) return
     setActiveClueId(clueId)
-    setResult('')
-    setTransferDept('')
-    setTransferReason('')
+    setViewMode('feedback')
+    resetFeedbackForm()
   }, [getVerificationByClueId])
+
+  const handleSelectForFollowUp = useCallback((clueId: string) => {
+    const feedback = getFeedbackByClueId(clueId)
+    if (!feedback) return
+    setActiveClueId(clueId)
+    setViewMode('followup')
+    resetFollowUpForm()
+  }, [getFeedbackByClueId])
 
   const handleViewDetail = useCallback((clueId: string) => {
     setViewingClueId(clueId)
   }, [])
 
-  if (activeClue && activeVerification) {
+  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files) return
+    Array.from(files).forEach((file) => {
+      const reader = new FileReader()
+      reader.onload = (ev) => {
+        const result = ev.target?.result as string
+        setAdditionalPhotos((prev) => {
+          if (prev.length >= 3) return prev
+          return [...prev, result]
+        })
+      }
+      reader.readAsDataURL(file)
+    })
+    e.target.value = ''
+  }, [])
+
+  const removePhoto = useCallback((index: number) => {
+    setAdditionalPhotos((prev) => prev.filter((_, i) => i !== index))
+  }, [])
+
+  const satisfactionOptions = [
+    { value: 'satisfied' as const, icon: Smile, label: '满意', color: 'text-green-500', bg: 'bg-green-50', border: 'border-green-300' },
+    { value: 'neutral' as const, icon: Meh, label: '一般', color: 'text-amber-500', bg: 'bg-amber-50', border: 'border-amber-300' },
+    { value: 'dissatisfied' as const, icon: Frown, label: '不满意', color: 'text-red-500', bg: 'bg-red-50', border: 'border-red-300' },
+  ]
+
+  if (viewMode === 'feedback' && activeClue && activeVerification) {
     return (
       <div className="min-h-screen bg-slate-50 pb-32">
         <header className="bg-teal-700 text-white px-5 pt-12 pb-5 rounded-b-3xl">
@@ -138,7 +263,10 @@ export default function Feedback() {
               </p>
             </div>
             <button
-              onClick={() => setActiveClueId(null)}
+              onClick={() => {
+                setViewMode('list')
+                setActiveClueId(null)
+              }}
               className="text-teal-200 text-xs flex items-center gap-1"
             >
               返回列表
@@ -268,6 +396,241 @@ export default function Feedback() {
             }`}
           >
             提交反馈
+          </button>
+        </div>
+
+        {viewingClue && viewingVerification && (
+          <VerificationDetail
+            verification={{ ...viewingVerification, clue: viewingClue }}
+            feedback={viewingFeedback || undefined}
+            onClose={() => setViewingClueId(null)}
+          />
+        )}
+      </div>
+    )
+  }
+
+  if (viewMode === 'followup' && activeClue && activeFeedback) {
+    return (
+      <div className="min-h-screen bg-slate-50 pb-32">
+        <header className="bg-purple-600 text-white px-5 pt-12 pb-5 rounded-b-3xl">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-xl font-bold">回访补充</h1>
+              <p className="text-purple-200 text-xs mt-0.5">
+                {activeCommunity?.name} · {SATISFACTION_LABELS[satisfaction || 'satisfied']}
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                setViewMode('list')
+                setActiveClueId(null)
+              }}
+              className="text-purple-200 text-xs flex items-center gap-1"
+            >
+              返回列表
+            </button>
+          </div>
+        </header>
+
+        <div className="px-4 py-4 space-y-5">
+          <section className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+            <div className="flex items-center gap-3 mb-3">
+              <CategoryIcon category={activeClue.category} size="sm" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-slate-700 line-clamp-2">{activeClue.originalText}</p>
+                <p className="text-[10px] text-slate-400 mt-1">{activeCommunity?.name}</p>
+              </div>
+            </div>
+            {activeFeedback.transferDept && (
+              <div className="flex items-center gap-1.5 text-xs text-purple-600 bg-purple-50 rounded-lg px-2 py-1 w-fit">
+                <RefreshCw size={10} />
+                已转办至：{activeFeedback.transferDept}
+              </div>
+            )}
+          </section>
+
+          <section>
+            <h3 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
+              <PhoneCall size={16} className="text-purple-600" />
+              居民满意度
+              <span className="text-xs text-slate-400 font-normal">（必填）</span>
+            </h3>
+            <div className="grid grid-cols-3 gap-3">
+              {satisfactionOptions.map((opt) => {
+                const selected = satisfaction === opt.value
+                const Icon = opt.icon
+                return (
+                  <button
+                    key={opt.value}
+                    onClick={() => setSatisfaction(opt.value)}
+                    className={`rounded-xl py-4 px-2 border-2 transition-all text-center ${
+                      selected ? `${opt.bg} ${opt.border}` : 'bg-white border-slate-200'
+                    }`}
+                  >
+                    <Icon size={24} className={`mx-auto mb-2 ${selected ? opt.color : 'text-slate-300'}`} />
+                    <span className={`text-xs font-medium ${selected ? opt.color : 'text-slate-500'}`}>
+                      {opt.label}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </section>
+
+          <section>
+            <h3 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
+              <RefreshCw size={16} className="text-purple-600" />
+              问题是否复发
+            </h3>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setIsRecurrence(false)}
+                className={`flex-1 rounded-xl py-3 border-2 transition-all ${
+                  !isRecurrence ? 'bg-green-50 border-green-300 text-green-700' : 'bg-white border-slate-200 text-slate-500'
+                }`}
+              >
+                <span className="text-sm font-medium">未复发</span>
+              </button>
+              <button
+                onClick={() => setIsRecurrence(true)}
+                className={`flex-1 rounded-xl py-3 border-2 transition-all ${
+                  isRecurrence ? 'bg-red-50 border-red-300 text-red-700' : 'bg-white border-slate-200 text-slate-500'
+                }`}
+              >
+                <span className="text-sm font-medium">已复发</span>
+              </button>
+            </div>
+          </section>
+
+          <section>
+            <h3 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+              <Camera size={16} className="text-purple-600" />
+              补充照片
+              <span className="text-xs text-slate-400 font-normal">（可选，最多3张）</span>
+            </h3>
+            <div className="flex gap-3">
+              {additionalPhotos.map((photo, i) => (
+                <div key={i} className="relative w-24 h-24 rounded-xl overflow-hidden border-2 border-slate-200">
+                  <img src={photo} alt="" className="w-full h-full object-cover" />
+                  <button
+                    onClick={() => removePhoto(i)}
+                    className="absolute top-1 right-1 w-5 h-5 bg-black/50 rounded-full flex items-center justify-center"
+                  >
+                    <X size={12} className="text-white" />
+                  </button>
+                </div>
+              ))}
+              {additionalPhotos.length < 3 && (
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-24 h-24 rounded-xl border-2 border-dashed border-slate-300 flex flex-col items-center justify-center gap-1 active:bg-slate-50 transition-colors"
+                >
+                  <ImageIcon size={20} className="text-slate-400" />
+                  <Plus size={16} className="text-slate-400 -mt-1" />
+                  <span className="text-[10px] text-slate-400">添加照片</span>
+                </button>
+              )}
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              multiple
+              className="hidden"
+              onChange={handleFileChange}
+            />
+          </section>
+
+          <section>
+            <h3 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+              <MessageSquare size={16} className="text-purple-600" />
+              补充说明
+              <span className="text-xs text-slate-400 font-normal">（可选）</span>
+            </h3>
+            <textarea
+              value={additionalNotes}
+              onChange={(e) => setAdditionalNotes(e.target.value)}
+              placeholder="请填写回访时的补充说明，如居民反馈的其他问题、处置效果等..."
+              rows={3}
+              className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400 resize-none"
+            />
+          </section>
+
+          {activeFeedback.followUps.length > 0 && (
+            <section>
+              <h3 className="text-sm font-semibold text-slate-700 mb-2">历史回访记录</h3>
+              <div className="space-y-2">
+                {activeFeedback.followUps.map((fu, idx) => {
+                  const satOpt = satisfactionOptions.find((o) => o.value === fu.satisfaction)
+                  const SatIcon = satOpt?.icon || Meh
+                  return (
+                    <div key={fu.id} className="bg-white border border-slate-100 rounded-xl p-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <SatIcon size={14} className={satOpt?.color || 'text-slate-400'} />
+                        <span className={`text-xs font-medium ${satOpt?.color || 'text-slate-500'}`}>
+                          {satOpt?.label || '未记录'}
+                        </span>
+                        <span className="text-[10px] text-slate-300 ml-auto">
+                          {new Date(fu.createdAt).toLocaleString('zh-CN')}
+                        </span>
+                      </div>
+                      {fu.isRecurrence && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-50 text-red-600 mr-2">
+                          已复发
+                        </span>
+                      )}
+                      {fu.additionalNotes && (
+                        <p className="text-xs text-slate-600 mt-1">{fu.additionalNotes}</p>
+                      )}
+                      {fu.additionalPhotos.length > 0 && (
+                        <div className="flex gap-1.5 mt-2">
+                          {fu.additionalPhotos.map((p, i) => (
+                            <img key={i} src={p} alt="" className="w-12 h-12 rounded-lg object-cover" />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </section>
+          )}
+
+          {satisfaction && (
+            <section className="animate-fade-in">
+              <h3 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+                <ClipboardCopy size={16} className="text-purple-600" />
+                回访群说明预览
+              </h3>
+              <div className="bg-purple-50 border border-purple-200 rounded-xl p-4">
+                <p className="text-sm text-purple-800 leading-relaxed whitespace-pre-line">{previewFollowUpNotice}</p>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(previewFollowUpNotice).catch(() => {})
+                  }}
+                  className="mt-3 flex items-center gap-1.5 text-xs text-purple-600 font-medium"
+                >
+                  <ClipboardCopy size={14} />
+                  一键复制
+                </button>
+              </div>
+            </section>
+          )}
+        </div>
+
+        <div className="fixed bottom-16 left-0 right-0 px-4 py-3 bg-white/80 backdrop-blur-lg border-t border-slate-100">
+          <button
+            onClick={handleSubmitFollowUp}
+            disabled={!canSubmitFollowUp}
+            className={`w-full rounded-xl py-3.5 text-sm font-medium transition-all ${
+              canSubmitFollowUp
+                ? 'bg-purple-600 text-white active:bg-purple-700 shadow-lg shadow-purple-600/20'
+                : 'bg-slate-100 text-slate-400'
+            }`}
+          >
+            提交回访记录
           </button>
         </div>
 
@@ -419,6 +782,16 @@ export default function Feedback() {
                       }`}>
                         {r.displayStatus}
                       </span>
+                      {r.feedback?.transferDept && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-50 text-purple-700">
+                          转{r.feedback.transferDept}
+                        </span>
+                      )}
+                      {r.feedback && r.feedback.followUps.length > 0 && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-600">
+                          {r.feedback.followUps.length}次回访
+                        </span>
+                      )}
                       {r.verification?.verifiedAt && (
                         <span className="text-[10px] text-slate-300">
                           {new Date(r.verification.verifiedAt).toLocaleDateString('zh-CN')}
@@ -443,6 +816,15 @@ export default function Feedback() {
                         title="填写反馈"
                       >
                         <Edit3 size={14} className="text-teal-500" />
+                      </button>
+                    )}
+                    {r.displayStatus === '已闭环' && (
+                      <button
+                        onClick={() => handleSelectForFollowUp(r.clue.id)}
+                        className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center"
+                        title="回访补充"
+                      >
+                        <Plus size={14} className="text-purple-500" />
                       </button>
                     )}
                   </div>

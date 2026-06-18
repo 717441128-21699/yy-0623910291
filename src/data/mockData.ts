@@ -10,6 +10,8 @@ export const communities: Community[] = [
 
 const now = new Date()
 const h = (hours: number) => new Date(now.getTime() - hours * 3600000).toISOString()
+const d = (days: number) => new Date(now.getTime() - days * 86400000).toISOString()
+const dl = (days: number) => new Date(now.getTime() + days * 86400000).toISOString()
 
 export const initialClues: Clue[] = [
   {
@@ -24,7 +26,9 @@ export const initialClues: Clue[] = [
     ],
     source: 'wechat',
     similarCount: 12,
+    firstAppearedAt: d(3),
     lastAppearedAt: h(0.5),
+    expectedDeadline: dl(0),
     status: 'pending',
   },
   {
@@ -38,7 +42,9 @@ export const initialClues: Clue[] = [
     ],
     source: 'bulletin',
     similarCount: 6,
+    firstAppearedAt: d(1),
     lastAppearedAt: h(2),
+    expectedDeadline: dl(1),
     status: 'pending',
   },
   {
@@ -53,7 +59,9 @@ export const initialClues: Clue[] = [
     ],
     source: 'video',
     similarCount: 18,
+    firstAppearedAt: d(4),
     lastAppearedAt: h(1),
+    expectedDeadline: dl(-1),
     status: 'pending',
   },
   {
@@ -66,7 +74,9 @@ export const initialClues: Clue[] = [
     ],
     source: 'wechat',
     similarCount: 5,
+    firstAppearedAt: d(1),
     lastAppearedAt: h(4),
+    expectedDeadline: dl(1),
     status: 'pending',
   },
   {
@@ -81,7 +91,9 @@ export const initialClues: Clue[] = [
     ],
     source: 'wechat',
     similarCount: 9,
+    firstAppearedAt: d(2),
     lastAppearedAt: h(3),
+    expectedDeadline: dl(0),
     status: 'pending',
   },
   {
@@ -95,7 +107,9 @@ export const initialClues: Clue[] = [
     ],
     source: 'bulletin',
     similarCount: 7,
+    firstAppearedAt: d(1),
     lastAppearedAt: h(5),
+    expectedDeadline: dl(2),
     status: 'pending',
   },
   {
@@ -109,7 +123,9 @@ export const initialClues: Clue[] = [
     ],
     source: 'video',
     similarCount: 8,
+    firstAppearedAt: d(1),
     lastAppearedAt: h(6),
+    expectedDeadline: dl(2),
     status: 'pending',
   },
   {
@@ -123,7 +139,9 @@ export const initialClues: Clue[] = [
     ],
     source: 'wechat',
     similarCount: 11,
+    firstAppearedAt: d(3),
     lastAppearedAt: h(1.5),
+    expectedDeadline: dl(0),
     status: 'pending',
   },
   {
@@ -137,7 +155,9 @@ export const initialClues: Clue[] = [
     ],
     source: 'bulletin',
     similarCount: 4,
+    firstAppearedAt: d(1),
     lastAppearedAt: h(8),
+    expectedDeadline: dl(3),
     status: 'pending',
   },
   {
@@ -150,7 +170,9 @@ export const initialClues: Clue[] = [
     ],
     source: 'video',
     similarCount: 3,
+    firstAppearedAt: d(1),
     lastAppearedAt: h(10),
+    expectedDeadline: dl(3),
     status: 'pending',
   },
   {
@@ -164,8 +186,11 @@ export const initialClues: Clue[] = [
     ],
     source: 'wechat',
     similarCount: 14,
+    firstAppearedAt: d(5),
     lastAppearedAt: h(0.2),
+    expectedDeadline: dl(-2),
     status: 'pending',
+    isTransferFollowUp: true,
   },
   {
     id: 'clue12',
@@ -179,8 +204,10 @@ export const initialClues: Clue[] = [
     ],
     source: 'bulletin',
     similarCount: 15,
+    firstAppearedAt: d(7),
     lastAppearedAt: h(2.5),
-    status: 'pending',
+    expectedDeadline: dl(-3),
+    status: 'feedback_done',
   },
 ]
 

@@ -1,8 +1,9 @@
 import { useLocation, useNavigate } from 'react-router-dom'
-import { Search, ClipboardCheck, FileText } from 'lucide-react'
+import { Search, ClipboardCheck, FileText, ListTodo } from 'lucide-react'
 
 const tabs = [
   { path: '/', label: '今日线索', icon: Search },
+  { path: '/tasks', label: '跟进任务', icon: ListTodo },
   { path: '/verify', label: '现场核验', icon: ClipboardCheck },
   { path: '/feedback', label: '反馈记录', icon: FileText },
 ]

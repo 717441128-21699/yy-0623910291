@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
-import { Filter, ChevronDown, ChevronUp, Search, AlertTriangle, TrendingUp, Users } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Filter, ChevronDown, ChevronUp, Search, AlertTriangle, TrendingUp, Users, Clock, RefreshCw, UserX } from 'lucide-react'
 import type { ClueCategory, ClueSource } from '@/types'
 import { CATEGORY_LABELS, SOURCE_LABELS } from '@/types'
 import { useStore } from '@/store/useStore'
@@ -8,11 +9,14 @@ import ClueCard from '@/components/ClueCard'
 import ClueDetail from '@/components/ClueDetail'
 
 export default function Clues() {
+  const navigate = useNavigate()
   const clues = useStore((s) => s.clues)
   const selectClue = useStore((s) => s.selectClue)
   const selectedClueId = useStore((s) => s.selectedClueId)
   const startVerify = useStore((s) => s.startVerify)
   const getCluesWithAlerts = useStore((s) => s.getCluesWithAlerts)
+  const getVerificationByClueId = useStore((s) => s.getVerificationByClueId)
+  const getFeedbackByClueId = useStore((s) => s.getFeedbackByClueId)
 
   const [categoryFilter, setCategoryFilter] = useState<ClueCategory | 'all'>('all')
   const [sourceFilter, setSourceFilter] = useState<ClueSource | 'all'>('all')
@@ -174,7 +178,7 @@ export default function Clues() {
                 />
               ))}
             </div>
-            <div className="flex items-center gap-3 px-2 mt-3 text-xs text-slate-400">
+            <div className="flex flex-wrap items-center gap-3 px-2 mt-3 text-xs text-slate-400">
               <span className="flex items-center gap-1">
                 <TrendingUp size={10} className="text-orange-500" />
                 投诉突增 = 相似人数≥10
@@ -182,6 +186,14 @@ export default function Clues() {
               <span className="flex items-center gap-1">
                 <Users size={10} className="text-amber-500" />
                 同类聚集 = 同小区同类别≥2条
+              </span>
+              <span className="flex items-center gap-1">
+                <Clock size={10} className="text-rose-500" />
+                持续多日 = 出现≥3天
+              </span>
+              <span className="flex items-center gap-1">
+                <RefreshCw size={10} className="text-purple-500" />
+                转办后仍投诉 = 转办后仍有新增
               </span>
             </div>
           </section>
@@ -254,7 +266,16 @@ export default function Clues() {
           onClose={() => selectClue(null)}
           onVerify={(id) => {
             selectClue(null)
-            startVerify(id)
+            const verification = getVerificationByClueId(id)
+            const feedback = getFeedbackByClueId(id)
+            if (verification && !feedback) {
+              navigate('/feedback', { state: { clueId: id } })
+            } else if (feedback) {
+              navigate('/feedback', { state: { clueId: id } })
+            } else {
+              startVerify(id)
+              navigate(`/verify/${id}`)
+            }
           }}
         />
       )}
