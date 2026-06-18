@@ -1,6 +1,6 @@
-import { X, Camera, Mic, MapPin, Clock, ClipboardCopy, FileText, Send, Smile, Meh, Frown, RefreshCw, MessageSquare } from 'lucide-react'
-import type { Verification, FeedbackRecord, Clue, FollowUpRecord } from '@/types'
-import { VERIFY_STATUS_LABELS, CATEGORY_LABELS, SATISFACTION_LABELS } from '@/types'
+import { X, Camera, Mic, MapPin, Clock, ClipboardCopy, FileText, Send, Smile, Meh, Frown, RefreshCw, MessageSquare, Phone } from 'lucide-react'
+import type { Verification, FeedbackRecord, Clue, FollowUpRecord, UrgeRecord } from '@/types'
+import { VERIFY_STATUS_LABELS, CATEGORY_LABELS, SATISFACTION_LABELS, URGE_METHOD_LABELS, URGE_METHOD_ICONS } from '@/types'
 import { useStore } from '@/store/useStore'
 import CategoryIcon from '@/components/CategoryIcon'
 import VoicePlayer from '@/components/VoicePlayer'
@@ -232,6 +232,49 @@ export default function VerificationDetail({ verification, feedback, onClose, on
                         </div>
                       )
                     })}
+                  </div>
+                </div>
+              )}
+
+              {feedback.urgeRecords && feedback.urgeRecords.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
+                    <Phone size={14} className="text-orange-600" />
+                    催办记录
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-600 font-normal">
+                      {feedback.urgeRecords.length}条
+                    </span>
+                  </h4>
+                  <div className="space-y-3">
+                    {feedback.urgeRecords.map((ur: UrgeRecord, idx: number) => (
+                      <div key={ur.id} className="bg-orange-50 border border-orange-100 rounded-xl p-3">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-[10px] bg-white px-1.5 py-0.5 rounded-full text-slate-500">
+                            第{idx + 1}次催办
+                          </span>
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700 flex items-center gap-0.5">
+                            {URGE_METHOD_ICONS[ur.urgeMethod]}
+                            {URGE_METHOD_LABELS[ur.urgeMethod]}
+                          </span>
+                          <span className="text-[10px] text-slate-400 ml-auto">
+                            {new Date(ur.createdAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-600 mb-1">
+                          <span className="text-slate-400">催办：</span>
+                          {ur.urgeContent}
+                        </p>
+                        <p className="text-[11px] text-slate-600">
+                          <span className="text-slate-400">回复：</span>
+                          {ur.responseContent}
+                        </p>
+                        {ur.handlerName && (
+                          <p className="text-[10px] text-slate-400 mt-1">
+                            联系人：{ur.handlerName}
+                          </p>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}

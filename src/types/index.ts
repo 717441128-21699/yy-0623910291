@@ -53,6 +53,10 @@ export interface FeedbackRecord {
   generatedNotice: string
   createdAt: string | null
   followUps: FollowUpRecord[]
+  handlerName: string
+  expectedFinishAt: string
+  transferSimilarCount: number
+  urgeRecords: UrgeRecord[]
 }
 
 export interface FollowUpRecord {
@@ -66,8 +70,33 @@ export interface FollowUpRecord {
   createdAt: string
 }
 
+export interface UrgeRecord {
+  id: string
+  feedbackId: string
+  clueId: string
+  urgeContent: string
+  urgeMethod: 'phone' | 'wechat' | 'onsite' | 'meeting'
+  handlerName: string
+  responseContent: string
+  createdAt: string
+}
+
+export interface TransferProgress {
+  feedbackId: string
+  clueId: string
+  handlerName: string
+  currentProgress: string
+  isOverdue: boolean
+  overdueDays: number
+  latestFollowUp: FollowUpRecord | null
+  transferAt: string
+  expectedFinishAt: string
+  urgeRecords: UrgeRecord[]
+}
+
 export type TaskGroup = 'today' | 'tomorrow' | 'overdue' | 'future'
 export type TaskType = 'verify' | 'feedback' | 'transfer_followup'
+export type UrgeMethod = 'phone' | 'wechat' | 'onsite' | 'meeting'
 
 export interface TaskItem {
   id: string
@@ -119,4 +148,18 @@ export const TASK_GROUP_LABELS: Record<TaskGroup, { label: string; color: string
   today: { label: '今天', color: 'text-orange-600', bg: 'bg-orange-50' },
   tomorrow: { label: '明天', color: 'text-amber-600', bg: 'bg-amber-50' },
   future: { label: '稍后', color: 'text-slate-500', bg: 'bg-slate-50' },
+}
+
+export const URGE_METHOD_LABELS: Record<UrgeMethod, string> = {
+  phone: '电话',
+  wechat: '微信',
+  onsite: '现场',
+  meeting: '会议',
+}
+
+export const URGE_METHOD_ICONS: Record<UrgeMethod, string> = {
+  phone: '📞',
+  wechat: '💬',
+  onsite: '🏃',
+  meeting: '🤝',
 }

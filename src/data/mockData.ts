@@ -211,5 +211,105 @@ export const initialClues: Clue[] = [
   },
 ]
 
-export const initialVerifications: Verification[] = []
-export const initialFeedbacks: FeedbackRecord[] = []
+export const initialVerifications: Verification[] = [
+  {
+    id: 'v_1234567890000',
+    clueId: 'clue11',
+    photos: [],
+    voiceNoteUrl: '',
+    voiceBlob: null,
+    voiceBase64: null,
+    voiceDuration: 0,
+    location: '翠苑一区临街路段',
+    verifyStatus: 'confirmed',
+    verifiedAt: d(2),
+  },
+  {
+    id: 'v_1234567890001',
+    clueId: 'clue12',
+    photos: [],
+    voiceNoteUrl: '',
+    voiceBlob: null,
+    voiceBase64: null,
+    voiceDuration: 0,
+    location: '古荡新村2幢单元门口',
+    verifyStatus: 'confirmed',
+    verifiedAt: d(5),
+  },
+]
+
+export const initialFeedbacks: FeedbackRecord[] = [
+  {
+    id: 'fb_1234567890000',
+    verificationId: 'v_1234567890000',
+    clueId: 'clue11',
+    result: '',
+    transferDept: '交警大队',
+    transferReason: '渣土车夜间通行属于交通管理范畴',
+    generatedNotice: '【社区回复】关于翠苑一区噪声扰民问题的反馈：针对居民反映"翠苑一区临街的住户反映夜间..."，经现场核验，情况属实。已转办至交警大队处理（渣土车夜间通行属于交通管理范畴）。感谢居民朋友的关注与反馈，我们将持续跟进。',
+    createdAt: d(2),
+    followUps: [],
+    handlerName: '张队',
+    expectedFinishAt: dl(-1),
+    transferSimilarCount: 8,
+    urgeRecords: [
+      {
+        id: 'urge_1',
+        feedbackId: 'fb_1234567890000',
+        clueId: 'clue11',
+        urgeContent: '询问渣土车限行措施落实情况',
+        urgeMethod: 'phone',
+        handlerName: '张队',
+        responseContent: '已协调辖区中队加强夜间巡逻',
+        createdAt: d(1),
+      },
+    ],
+  },
+  {
+    id: 'fb_1234567890001',
+    verificationId: 'v_1234567890001',
+    clueId: 'clue12',
+    result: '',
+    transferDept: '物业中心',
+    transferReason: '电梯维修维护属于物业服务范围',
+    generatedNotice: '【社区回复】关于古荡新村其他问题的反馈：针对居民反映"古荡新村2幢电梯经常故障停运..."，经现场核验，情况属实。已转办至物业中心处理（电梯维修维护属于物业服务范围）。感谢居民朋友的关注与反馈，我们将持续跟进。',
+    createdAt: d(5),
+    followUps: [
+      {
+        id: 'fu_1',
+        feedbackId: 'fb_1234567890001',
+        satisfaction: 'dissatisfied',
+        isRecurrence: true,
+        additionalPhotos: [],
+        additionalNotes: '电梯修完又坏了，居民很有意见',
+        generatedFollowUpNotice: '【社区回访】关于古荡新村其他问题的回访反馈：针对居民反映"古荡新村2幢电梯经常故障停运..."，居民表示不满意，问题出现反复（电梯修完又坏了，居民很有意见）。我们将持续关注居民诉求，如有其他问题欢迎随时反馈。\n\n此前反馈：【社区回复】关于古荡新村其他问题的反馈...',
+        createdAt: d(2),
+      },
+    ],
+    handlerName: '李经理',
+    expectedFinishAt: dl(-2),
+    transferSimilarCount: 12,
+    urgeRecords: [
+      {
+        id: 'urge_2',
+        feedbackId: 'fb_1234567890001',
+        clueId: 'clue12',
+        urgeContent: '催促电梯维修进度',
+        urgeMethod: 'wechat',
+        handlerName: '李经理',
+        responseContent: '已联系维保单位，明天上门',
+        createdAt: d(3),
+      },
+      {
+        id: 'urge_3',
+        feedbackId: 'fb_1234567890001',
+        clueId: 'clue12',
+        urgeContent: '确认维修完成情况',
+        urgeMethod: 'onsite',
+        handlerName: '李经理',
+        responseContent: '维修完成，但配件老旧建议更换',
+        createdAt: d(2.5),
+      },
+    ],
+  },
+]

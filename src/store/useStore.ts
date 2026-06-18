@@ -10,9 +10,12 @@ import type {
   TaskItem,
   TaskGroup,
   TaskType,
+  TransferProgress,
+  UrgeRecord,
+  UrgeMethod,
 } from '@/types'
 import { communities, initialClues, initialVerifications, initialFeedbacks } from '@/data/mockData'
-import { saveToLocalStorage, loadFromLocalStorage } from '@/utils/storage'
+import { saveToLocalStorage, loadFromLocalStorage, blobToBase64 } from '@/utils/storage'
 
 const DEBOUNCE_MS = 500
 
@@ -165,6 +168,14 @@ interface AppState {
     additionalPhotos: string[]
     additionalNotes: string
   }) => void
+  addUrgeRecord: (data: {
+    feedbackId: string
+    clueId: string
+    urgeContent: string
+    urgeMethod: UrgeMethod
+    handlerName: string
+    responseContent: string
+  }) => void
   getCommunityById: (id: string) => typeof communities[0] | undefined
   getClueById: (id: string) => Clue | undefined
   getVerificationById: (id: string) => Verification | undefined
@@ -176,10 +187,26 @@ interface AppState {
     communityName: string
     alertTypes: AlertType[]
     alertLabel: string
+    transferDept?: string
+    transferSimilarCount?: number
   })[]
   getTasks: () => Record<TaskGroup, TaskItem[]>
+  getTransferProgressList: (filters?: {
+    dept?: string
+    isOverdue?: boolean
+    communityId?: string
+  }) => TransferProgress[]
   generateNotice: typeof generateNotice
   generateFollowUpNotice: typeof generateFollowUpNotice
+  generateUrgeNotice: (data: {
+    communityName: string
+    categoryLabel: string
+    urgeContent: string
+    urgeMethod: UrgeMethod
+    handlerName: string
+    responseContent: string
+    prevNotice: string
+  }) => string
 }
 
 function initializeState() {
@@ -188,14 +215,28 @@ function initializeState() {
     return {
       clues: stored.clues,
       verifications: stored.verifications,
-      feedbacks: stored.feedbacks.map((f) => ({ ...f, followUps: f.followUps || [] })),
+      feedbacks: stored.feedbacks.map((f) => ({
+        ...f,
+        followUps: f.followUps || [],
+        urgeRecords: f.urgeRecords || [],
+        handlerName: f.handlerName || '',
+        expectedFinishAt: f.expectedFinishAt || '',
+        transferSimilarCount: f.transferSimilarCount || 0,
+      })),
       isLoaded: true,
     }
   }
   return {
     clues: initialClues,
     verifications: initialVerifications,
-    feedbacks: initialFeedbacks.map((f) => ({ ...f, followUps: f.followUps || [] })),
+    feedbacks: initialFeedbacks.map((f) => ({
+      ...f,
+      followUps: f.followUps || [],
+      urgeRecords: f.urgeRecords || [],
+      handlerName: f.handlerName || '',
+      expectedFinishAt: f.expectedFinishAt || '',
+      transferSimilarCount: f.transferSimilarCount || 0,
+    })),
     isLoaded: false,
   }
 }
@@ -220,14 +261,23 @@ export const useStore = create<AppState>((set, get) => ({
 
   setViewingVerification: (id) => set({ viewingVerificationId: id }),
 
-  submitVerification: (data) => {
+  submitVerification: async (data) => {
+    let voiceBase64: string | null = null
+    if (data.voiceBlob) {
+      try {
+        voiceBase64 = await blobToBase64(data.voiceBlob)
+      } catch {
+        voiceBase64 = null
+      }
+    }
+
     const verification: Verification = {
       id: `v_${Date.now()}`,
       clueId: data.clueId,
       photos: data.photos,
       voiceNoteUrl: data.voiceNoteUrl,
       voiceBlob: data.voiceBlob,
-      voiceBase64: null,
+      voiceBase64,
       voiceDuration: data.voiceDuration,
       location: data.location,
       verifyStatus: data.verifyStatus,
@@ -239,41 +289,6 @@ export const useStore = create<AppState>((set, get) => ({
         c.id === data.clueId ? { ...c, status: 'verified' as const } : c
       ),
       activeVerifyClueId: null,
-    }))
-    debouncedSave(get())
-  },
-
-  submitFeedback: (data) => {
-    const clue = get().clues.find((c) => c.id === data.clueId)
-    const verification = get().verifications.find((v) => v.id === data.verificationId)
-    const community = clue ? get().getCommunityById(clue.communityId)?.name : ''
-
-    const generatedNotice = get().generateNotice({
-      originalText: clue?.originalText || '',
-      category: clue?.category || 'other',
-      communityName: community || '',
-      verifyStatus: verification?.verifyStatus || null,
-      result: data.result,
-      transferDept: data.transferDept,
-      transferReason: data.transferReason,
-    })
-
-    const feedback: FeedbackRecord = {
-      id: `fb_${Date.now()}`,
-      verificationId: data.verificationId,
-      clueId: data.clueId,
-      result: data.result,
-      transferDept: data.transferDept,
-      transferReason: data.transferReason,
-      generatedNotice,
-      createdAt: new Date().toISOString(),
-      followUps: [],
-    }
-    set((state) => ({
-      feedbacks: [...state.feedbacks, feedback],
-      clues: state.clues.map((c) =>
-        c.id === data.clueId ? { ...c, status: 'feedback_done' as const } : c
-      ),
     }))
     debouncedSave(get())
   },
@@ -316,8 +331,81 @@ export const useStore = create<AppState>((set, get) => ({
     debouncedSave(get())
   },
 
+  addUrgeRecord: (data) => {
+    const urge: UrgeRecord = {
+      id: `urge_${Date.now()}`,
+      feedbackId: data.feedbackId,
+      clueId: data.clueId,
+      urgeContent: data.urgeContent,
+      urgeMethod: data.urgeMethod,
+      handlerName: data.handlerName,
+      responseContent: data.responseContent,
+      createdAt: new Date().toISOString(),
+    }
+
+    set((state) => ({
+      feedbacks: state.feedbacks.map((f) =>
+        f.id === data.feedbackId
+          ? {
+              ...f,
+              urgeRecords: [...f.urgeRecords, urge],
+              handlerName: data.handlerName || f.handlerName,
+            }
+          : f
+      ),
+    }))
+    debouncedSave(get())
+  },
+
+  submitFeedback: (data) => {
+    const clue = get().clues.find((c) => c.id === data.clueId)
+    const verification = get().verifications.find((v) => v.id === data.verificationId)
+    const community = clue ? get().getCommunityById(clue.communityId)?.name : ''
+
+    const generatedNotice = get().generateNotice({
+      originalText: clue?.originalText || '',
+      category: clue?.category || 'other',
+      communityName: community || '',
+      verifyStatus: verification?.verifyStatus || null,
+      result: data.result,
+      transferDept: data.transferDept,
+      transferReason: data.transferReason,
+    })
+
+    const expectedFinish = new Date()
+    expectedFinish.setDate(expectedFinish.getDate() + 3)
+
+    const feedback: FeedbackRecord = {
+      id: `fb_${Date.now()}`,
+      verificationId: data.verificationId,
+      clueId: data.clueId,
+      result: data.result,
+      transferDept: data.transferDept,
+      transferReason: data.transferReason,
+      generatedNotice,
+      createdAt: new Date().toISOString(),
+      followUps: [],
+      handlerName: '',
+      expectedFinishAt: data.transferDept ? expectedFinish.toISOString() : '',
+      transferSimilarCount: 0,
+      urgeRecords: [],
+    }
+    set((state) => ({
+      feedbacks: [...state.feedbacks, feedback],
+      clues: state.clues.map((c) =>
+        c.id === data.clueId ? { ...c, status: 'feedback_done' as const } : c
+      ),
+    }))
+    debouncedSave(get())
+  },
+
   generateNotice,
   generateFollowUpNotice,
+  generateUrgeNotice: (data) => {
+    const { communityName, categoryLabel, urgeContent, urgeMethod, handlerName, responseContent, prevNotice } = data
+    const methodLabel = urgeMethod === 'phone' ? '电话' : urgeMethod === 'wechat' ? '微信' : urgeMethod === 'onsite' ? '现场' : '会议'
+    return `【社区催办】关于${communityName}${categoryLabel}问题的催办反馈：${urgeContent}。已通过${methodLabel}联系${handlerName}，对方回复：${responseContent}。请居民朋友放心，我们将持续跟进。\n\n此前反馈：${prevNotice}`
+  },
 
   getCommunityById: (id) => communities.find((c) => c.id === id),
   getClueById: (id) => get().clues.find((c) => c.id === id),
@@ -363,10 +451,10 @@ export const useStore = create<AppState>((set, get) => ({
     })
 
     return clues
-      .filter((c) => c.status !== 'feedback_done')
       .map((c) => {
         const alertTypes: AlertType[] = []
         const community = get().getCommunityById(c.communityId)
+        const feedback = feedbacks.find((f) => f.clueId === c.id)
 
         if (c.similarCount >= 10) {
           alertTypes.push('spike')
@@ -386,6 +474,12 @@ export const useStore = create<AppState>((set, get) => ({
           alertTypes.push('transfer_spike')
         }
 
+        if (feedback && feedback.transferDept && c.similarCount >= 5) {
+          if (!alertTypes.includes('transfer_spike')) {
+            alertTypes.push('transfer_spike')
+          }
+        }
+
         let alertLabel = ''
         if (alertTypes.includes('transfer_spike') || (alertTypes.includes('spike') && alertTypes.includes('persistent'))) {
           alertLabel = '重点关注'
@@ -399,12 +493,64 @@ export const useStore = create<AppState>((set, get) => ({
           alertLabel = '转办后仍投诉'
         }
 
-        return {
+        const result: any = {
           ...c,
           communityName: community?.name || '',
           alertTypes,
           alertLabel,
         }
+
+        if (feedback && feedback.transferDept) {
+          result.transferDept = feedback.transferDept
+          result.transferSimilarCount = feedback.transferSimilarCount
+        }
+
+        return result
+      })
+  },
+
+  getTransferProgressList: (filters) => {
+    const { clues, feedbacks, verifications } = get()
+
+    return feedbacks
+      .filter((f) => f.transferDept)
+      .map((f) => {
+        const clue = clues.find((c) => c.id === f.clueId)!
+        const daysRemaining = getDaysDiff(f.expectedFinishAt)
+        const isOverdue = daysRemaining < 0
+        const latestFollowUp = f.followUps.length > 0 ? f.followUps[f.followUps.length - 1] : null
+
+        const progress: TransferProgress = {
+          feedbackId: f.id,
+          clueId: f.clueId,
+          handlerName: f.handlerName,
+          currentProgress: latestFollowUp
+            ? `已回访${f.followUps.length}次，${latestFollowUp.satisfaction === 'satisfied' ? '居民满意' : latestFollowUp.satisfaction === 'dissatisfied' ? '居民不满意' : '居民反馈一般'}`
+            : f.urgeRecords.length > 0
+            ? `已催办${f.urgeRecords.length}次`
+            : '待催办',
+          isOverdue,
+          overdueDays: isOverdue ? -daysRemaining : 0,
+          latestFollowUp,
+          transferAt: f.createdAt || new Date().toISOString(),
+          expectedFinishAt: f.expectedFinishAt,
+          urgeRecords: f.urgeRecords,
+        }
+
+        return progress
+      })
+      .filter((p) => {
+        if (!filters) return true
+        if (filters.dept) {
+          const feedback = feedbacks.find((f) => f.id === p.feedbackId)
+          if (feedback?.transferDept !== filters.dept) return false
+        }
+        if (filters.isOverdue !== undefined && p.isOverdue !== filters.isOverdue) return false
+        if (filters.communityId) {
+          const clue = clues.find((c) => c.id === p.clueId)
+          if (clue?.communityId !== filters.communityId) return false
+        }
+        return true
       })
   },
 

@@ -1,4 +1,4 @@
-import { Clock, Users, AlertTriangle } from 'lucide-react'
+import { Clock, Users, AlertTriangle, RefreshCw, UserX } from 'lucide-react'
 import type { Clue, ClueSource, AlertType } from '@/types'
 import { CATEGORY_LABELS, SOURCE_LABELS } from '@/types'
 import { useStore } from '@/store/useStore'
@@ -31,10 +31,12 @@ interface Props {
   clue: Clue
   alertLabel?: string
   alertTypes?: AlertType[]
+  transferDept?: string
+  transferSimilarCount?: number
   onClick: () => void
 }
 
-export default function ClueCard({ clue, alertLabel, onClick }: Props) {
+export default function ClueCard({ clue, alertLabel, alertTypes, transferDept, transferSimilarCount, onClick }: Props) {
   const getCommunityById = useStore((s) => s.getCommunityById)
   const community = getCommunityById(clue.communityId)
 
@@ -82,6 +84,21 @@ export default function ClueCard({ clue, alertLabel, onClick }: Props) {
               {statusLabels[clue.status]}
             </span>
           </div>
+
+          {transferDept && (
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-50 text-purple-600 flex items-center gap-0.5">
+                <RefreshCw size={8} />
+                已转{transferDept}
+              </span>
+              {transferSimilarCount !== undefined && transferSimilarCount > 0 && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-50 text-red-600 flex items-center gap-0.5">
+                  <UserX size={8} />
+                  转办后新增{transferSimilarCount}条反馈
+                </span>
+              )}
+            </div>
+          )}
 
           <p className="text-sm text-slate-800 leading-relaxed line-clamp-2 mb-2">
             {clue.originalText}

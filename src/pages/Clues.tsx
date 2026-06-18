@@ -174,6 +174,8 @@ export default function Clues() {
                   clue={clue}
                   alertLabel={clue.alertLabel}
                   alertTypes={clue.alertTypes}
+                  transferDept={clue.transferDept}
+                  transferSimilarCount={clue.transferSimilarCount}
                   onClick={() => selectClue(clue.id)}
                 />
               ))}
@@ -249,6 +251,8 @@ export default function Clues() {
                         clue={clue}
                         alertLabel={alertInfo?.alertLabel}
                         alertTypes={alertInfo?.alertTypes}
+                        transferDept={alertInfo?.transferDept}
+                        transferSimilarCount={alertInfo?.transferSimilarCount}
                         onClick={() => selectClue(clue.id)}
                       />
                     )

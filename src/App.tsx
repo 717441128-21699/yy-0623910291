@@ -3,6 +3,7 @@ import Clues from '@/pages/Clues'
 import Verify from '@/pages/Verify'
 import Feedback from '@/pages/Feedback'
 import Tasks from '@/pages/Tasks'
+import Supervise from '@/pages/Supervise'
 import BottomNav from '@/components/BottomNav'
 
 function AppContent() {
@@ -11,6 +12,7 @@ function AppContent() {
       <Routes>
         <Route path="/" element={<Clues />} />
         <Route path="/tasks" element={<Tasks />} />
+        <Route path="/supervise" element={<Supervise />} />
         <Route path="/verify" element={<Verify />} />
         <Route path="/verify/:id" element={<Verify />} />
         <Route path="/feedback" element={<Feedback />} />
