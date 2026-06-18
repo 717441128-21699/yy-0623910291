@@ -1,5 +1,5 @@
-import { Clock, Users } from 'lucide-react'
-import type { Clue, ClueSource } from '@/types'
+import { Clock, Users, AlertTriangle } from 'lucide-react'
+import type { Clue, ClueSource, AlertType } from '@/types'
 import { CATEGORY_LABELS, SOURCE_LABELS } from '@/types'
 import { useStore } from '@/store/useStore'
 import CategoryIcon from './CategoryIcon'
@@ -8,6 +8,12 @@ const sourceStyles: Record<ClueSource, string> = {
   wechat: 'bg-green-50 text-green-700 border-green-200',
   bulletin: 'bg-blue-50 text-blue-700 border-blue-200',
   video: 'bg-purple-50 text-purple-700 border-purple-200',
+}
+
+const alertStyles: Record<string, string> = {
+  '重点关注': 'bg-red-500',
+  '投诉突增': 'bg-orange-500',
+  '同类聚集': 'bg-amber-500',
 }
 
 function timeAgo(iso: string): string {
@@ -21,10 +27,12 @@ function timeAgo(iso: string): string {
 
 interface Props {
   clue: Clue
+  alertLabel?: string
+  alertTypes?: AlertType[]
   onClick: () => void
 }
 
-export default function ClueCard({ clue, onClick }: Props) {
+export default function ClueCard({ clue, alertLabel, onClick }: Props) {
   const getCommunityById = useStore((s) => s.getCommunityById)
   const community = getCommunityById(clue.communityId)
 
@@ -47,7 +55,9 @@ export default function ClueCard({ clue, onClick }: Props) {
       onClick={onClick}
       className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 active:scale-[0.98] transition-transform cursor-pointer relative overflow-hidden"
     >
-      <div className={`absolute left-0 top-0 bottom-0 w-1 ${statusColors[clue.status]}`} />
+      <div className={`absolute left-0 top-0 bottom-0 w-1 ${
+        alertLabel ? alertStyles[alertLabel] : statusColors[clue.status]
+      }`} />
 
       <div className="flex gap-3 pl-2">
         <div className="flex-shrink-0 mt-0.5">
@@ -55,11 +65,17 @@ export default function ClueCard({ clue, onClick }: Props) {
         </div>
 
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1.5">
+          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
             <span className="text-xs text-slate-400">{community?.name}</span>
             <span className={`text-[10px] px-1.5 py-0.5 rounded-full border ${sourceStyles[clue.source]}`}>
               {SOURCE_LABELS[clue.source]}
             </span>
+            {alertLabel && (
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full text-white flex items-center gap-0.5 ${alertStyles[alertLabel]}`}>
+                <AlertTriangle size={10} />
+                {alertLabel}
+              </span>
+            )}
             <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${statusColors[clue.status]} text-white ml-auto`}>
               {statusLabels[clue.status]}
             </span>

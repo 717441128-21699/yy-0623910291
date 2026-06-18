@@ -26,9 +26,17 @@ export interface Verification {
   clueId: string
   photos: string[]
   voiceNoteUrl: string
+  voiceBlob: Blob | null
+  voiceDuration: number
   location: string
   verifyStatus: VerifyStatus | null
   verifiedAt: string | null
+}
+
+export type AlertType = 'spike' | 'cluster'
+
+export interface ClueWithAlert extends Clue {
+  alertTypes?: AlertType[]
 }
 
 export interface FeedbackRecord {

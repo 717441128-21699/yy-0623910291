@@ -10,6 +10,7 @@ function AppContent() {
       <Routes>
         <Route path="/" element={<Clues />} />
         <Route path="/verify" element={<Verify />} />
+        <Route path="/verify/:id" element={<Verify />} />
         <Route path="/feedback" element={<Feedback />} />
       </Routes>
       <BottomNav />
